@@ -1,24 +1,25 @@
 -module(client).
--export([start/0]).
+-export([start/1]).
 
-start() ->
-	{getK, earth@QSmbp} ! {self()},
+start(Address) ->
+	{getK, Address} ! {self()},
 	receive {K, ClientID} ->
-		mine_process(K, ClientID)
+		mine_process(K,ClientID,Address)
 	end.
 
-
-mine_process(K, ClientID) ->
+mine_process(K, ClientID, Address) ->
+	
 	Code = randomizer(),
 	HashCode = hashFunction:encode(Code),
 	KSubStr= string:substr(HashCode,1,K),
 	DuplicateZero = lists:concat(lists:duplicate(K, "0")),
 	if 
 		KSubStr == DuplicateZero ->
-			{print,earth@QSmbp} ! {ClientID, Code, HashCode},
-			mine_process(K, ClientID);
+			
+			{print,Address} ! {ClientID, Code, HashCode},
+			mine_process(K, ClientID, Address);
 		true ->
-			mine_process(K, ClientID)
+			mine_process(K, ClientID, Address)
 		end.
 
 randomizer() ->

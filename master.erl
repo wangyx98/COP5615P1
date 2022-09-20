@@ -1,10 +1,11 @@
 -module(master).
--export([start/1,server_print/0,talkToClient/2]).
+-export([start/1,server_print/0,talkToClient/2, string_generator/0]).
 
 
 start(K) ->
 	register(print,spawn(master,server_print,[])),
 	register(getK,spawn(master, talkToClient,[K,0])),
+	register(string_gen, spawn(master, string_generator,[])),
 	mine_process(print, K).
 
 talkToClient(K,ID) ->
@@ -13,6 +14,20 @@ talkToClient(K,ID) ->
 			From ! {K, ID+1},
 			talkToClient(K, ID+1)
 		end.
+string_generator() ->
+	receive
+		{From} ->
+			% generate number of string
+			List = generate_string(100,[]),
+			From ! {List},
+			string_generator()
+		end.
+
+generate_string(Count, List) when Count > 0->
+	Code = randomizer(),
+	generate_string(Count - 1, List ++ [Code]);
+generate_string(0, List) ->
+	List.
 
 randomizer() ->
 	Random_Str = string:concat("xizhe",
