@@ -6,6 +6,8 @@ start(K) ->
 	register(print,spawn(master,server_print,[])),
 	register(getK,spawn(master, talkToClient,[K,0])),
 	register(string_gen, spawn(master, string_generator,[])),
+	statistics(runtime),
+	statistics(wall_clock),
 	mine_process(print, K).
 
 talkToClient(K,ID) ->
@@ -18,7 +20,7 @@ string_generator() ->
 	receive
 		{From} ->
 			% generate number of string
-			List = generate_string(100,[]),
+			List = generate_string(1000,[]),
 			From ! {List},
 			string_generator()
 		end.
@@ -42,8 +44,11 @@ mine_process(print,K) ->
 	DuplicateZero = lists:concat(lists:duplicate(K, "0")),
 	if 
 		KSubStr == DuplicateZero ->
-			print ! {Code, HashCode},
-			mine_process(print, K);
+			try 
+				print ! {Code, HashCode}
+			catch
+				error:badarg -> exit(self(),kill)
+			end;
 		true ->
 			mine_process(print, K)
 		end.
@@ -51,13 +56,17 @@ mine_process(print,K) ->
 server_print() ->
 	receive
 		{Code, HashCode} ->
-			io:format("From server\n"),
 			io:format("Code is ~s\n",[Code]),
 			io:format("HashCode is ~s\n",[HashCode]),
-			server_print();
-		{ClientID, Code, HashCode} ->
-			io:format("From Client ~w\n", [ClientID]),
-			io:format("Code is ~s\n",[Code]),
-			io:format("HashCode is ~s\n",[HashCode]),
-			server_print()
+			{_,Time} = statistics(runtime),
+			{_,Time2} = statistics(wall_clock),
+
+			timer:sleep(2000),
+			CPU_time = Time / 1000,
+			Run_time = Time2 / 1000,
+			Time3 = CPU_time / Run_time,
+			io:format("CPU time: ~p seconds\n", [CPU_time]),
+			io:format("real time: ~p seconds\n", [Run_time]),
+			io:format("Ratio is ~p \n", [Time3]),
+			exit(self(),kill)
 		end.
